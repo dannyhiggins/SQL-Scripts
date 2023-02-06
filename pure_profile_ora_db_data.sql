@@ -1,6 +1,12 @@
 REM Simple Script to collect some basic information on database size and content 
 REM Author - Danny Higgins
 
+prompt
+prompt This SQL script is for Non Pluggable databases (19c and below) .... Checking to see if this is a pluggable database
+SELECT CDB FROM V$DATABASE;
+prompt if CDB is YES then many of queries in this script will not work properly, you can download a pluggable db version of the script by running:
+prompt wget https://github.com/dannyhiggins/SQL-Scripts/blob/main/pure_profile_ora_pluggable_db_data.sql
+
 set linesize 200 pagesize 0
 set echo off
 set heading off
@@ -8,6 +14,7 @@ set termout off
 set feed off
 set verify off
 
+col dbname noprint new_value dbname
 col tacd noprint new_value tacd
 col tact noprint new_value tact
 col rfs noprint new_value rfs
@@ -16,6 +23,7 @@ col ld noprint new_value ld
 col comp noprint new_value comp
 col enc noprint new_value enc
 
+select name as dbname from v$database;
 
 select to_char(sum(bytes)/1024/1024/1024,'999,999.99') as tacd
 from v$datafile;
@@ -33,12 +41,12 @@ select to_char(sum(bytes)/1024/1024/1024,'999,999.99') as ld
 from dba_segments
 where SEGMENT_TYPE like 'LOB%'; 
 
-select count(*) as comp
+select to_char(count(*),'999,999') as comp
 from dba_tablespaces t, dba_data_files d
 where t.TABLESPACE_NAME=d.TABLESPACE_NAME
 and t.DEF_TAB_COMPRESSION like 'ENC%';
 
-select count(*) as enc
+select to_char(count(*),'999,999') as enc
 from dba_tablespaces t, dba_data_files d
 where t.TABLESPACE_NAME=d.TABLESPACE_NAME
 and t.ENCRYPTED != 'NO';
@@ -46,17 +54,20 @@ and t.ENCRYPTED != 'NO';
 
 set termout on
 
+prompt spooling to &dbname..txt
+spool &dbname..txt
 prompt
 prompt SUMMARY Data
 prompt ____________
 prompt
+prompt DBNAME=&dbname
 prompt Total Allocated Datafile Capacity (GB): &tacd
 prompt Total Allocated Tempfile Capacity (GB : &tact
-prompt Reported Free Space (GB)		     : &rfs
-prompt Used Data Segments (GB)		     : &uds
-prompt Used LOB Segments (GB)		     : &ld
-prompt Number of Compressed Datafiles      : &comp
-prompt Number of Encrypted Datafiles 	     : &enc
+prompt Reported Free Space (GB)              : &rfs
+prompt Used Data Segments (GB)               : &uds
+prompt Used LOB Segments (GB)                : &ld
+prompt Number of Compressed Datafiles        : &comp
+prompt Number of Encrypted Datafiles         : &enc
 
 
 
@@ -216,4 +227,6 @@ col VALUE form a55
 col ISDEFAULT form a10
 
 select NAME, VALUE, ISDEFAULT from v$parameter order by ISDEFAULT, NAME;
+
+spool off
 
